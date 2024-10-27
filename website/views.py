@@ -1,14 +1,11 @@
-import os
-from bs4 import BeautifulSoup
-import db
 import requests
+from bs4 import BeautifulSoup
+import os
+from flask import Blueprint, app, current_app, flash, jsonify, redirect, render_template, request, session, url_for, abort
+from flask_login import  current_user, login_required
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask import Blueprint, current_app, jsonify, render_template, request, redirect, session, url_for, flash
-from firebase_admin import firestore
-from flask_login import current_user, login_required, logout_user, login_user
-
-from website.models import CyberPosts, DataPosts, MemoPosts, NetworkPosts, Posts, QuestionPosts, Save, TradePost, UserProfile
+from .models import DataPosts, MemoPosts, NetworkPosts, QuestionPosts, User, UserProfile, tradepost, Posts, CyberPosts, Save
+from website import db
 
 
 views = Blueprint('views', __name__)
@@ -64,7 +61,7 @@ def sectorG():
 
 @views.route('/r-trade')
 def trade():
-    trades = TradePost.query.all()  # Fetch all trades
+    trades = tradepost.query.all()  # Fetch all trades
     for trade in trades:
         print(f"Trade image: {trade.image}") 
     return render_template('r-trade.html', trades=trades)
@@ -90,7 +87,7 @@ def create_trade():
             filename = secure_filename(image.filename)
             image.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
 
-            new_trade = TradePost(
+            new_trade = tradepost(
                 image=filename,
                 description=description,
                 title=title, 
@@ -364,25 +361,17 @@ def upload_file():
 @views.route('/delete-profile', methods=['POST'])
 @login_required
 def delete_profile():
-    data = request.get_json()
-    profile_id = data.get('profile_id')
+    data = request.get_json()  
+    profile_id = data.get('profile_id') 
     
-    if not profile_id:
-        return jsonify({'success': False, 'message': 'Profile ID is required'}), 400
-
-    # Reference to the profile document in Firestore
-    profile_ref = db.collection('user_profiles').document(profile_id)
+  
+    profile = UserProfile.query.get_or_404(profile_id)
     
-    # Check if the profile exists
-    profile = profile_ref.get()
-    if not profile.exists:
-        return jsonify({'success': False, 'message': 'Profile not found'}), 404
-
-    # Delete the profile
-    profile_ref.delete()
+    
+    db.session.delete(profile)
+    db.session.commit()
 
     return jsonify({'success': True, 'message': 'Profile deleted successfully!'})
-
 
 @views.route('/pick-profile')
 def pick_profile():

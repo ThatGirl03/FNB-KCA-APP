@@ -1,229 +1,136 @@
 from datetime import datetime
+from sqlalchemy import TIMESTAMP, Column, Integer, String, Float, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from flask_login import UserMixin
+from website import db
+from sqlalchemy.sql import func
 from werkzeug.security import generate_password_hash, check_password_hash
-import firebase_admin
-from firebase_admin import credentials, firestore
 
-# Initialize Firebase App
-cred = credentials.Certificate("path/to/your/firebase/credentials.json")
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+class Note(db.Model):
+    id = Column(Integer, primary_key=True)
+    data = Column(String(10000))
+    date = Column(TIMESTAMP(timezone=True), default=func.now())
+    user_id = Column(Integer, ForeignKey('user.id'))
 
-class Note:
-    def __init__(self, id, data, date, user_id):
-        self.id = id
-        self.data = data
-        self.date = date or datetime.utcnow()
-        self.user_id = user_id
+class User(db.Model, UserMixin):
+    id = Column(Integer, primary_key=True)
+    firstname = Column(String(120))
+    lastname = Column(String(120))
+    email = Column(String(150), unique=True)
+    password = Column(String(130))
+    notes = relationship('Note', backref='user', lazy=True)
+    profile = relationship('UserProfile', back_populates='user', uselist=False)
 
-    def save(self):
-        db.collection('notes').document(self.id).set({
-            'data': self.data,
-            'date': self.date,
-            'user_id': self.user_id
-        })
-
-class User(UserMixin):
-    def __init__(self, id, firstname, lastname, email, password, profile_id=None):
-        self.id = id
-        self.firstname = firstname
-        self.lastname = lastname
-        self.email = email
-        self.password = generate_password_hash(password)
-        self.profile_id = profile_id
-
-    def save(self):
-        db.collection('users').document(self.id).set({
-            'firstname': self.firstname,
-            'lastname': self.lastname,
-            'email': self.email,
-            'password': self.password,
-            'profile_id': self.profile_id
-        })
-
-    @staticmethod
-    def check_password(hashed_password, password):
-        return check_password_hash(hashed_password, password)
+class UserProfile(db.Model):
+    id = Column(Integer, primary_key=True)
+    firstname = Column(String(50))
+    lastname = Column(String(50))
+    bio = Column(String(200))
+    location = Column(String(100))
+    workplace = Column(String(100))
+    education = Column(String(100))
+    highlights = Column(String(200))
+    linkedin = Column(String(200))
+    facebook = Column(String(200))
+    instagram = Column(String(200))
+    cover_photo = Column(String(200))
+    media_upload = Column(String(200))
+    media_type = Column(String(50))
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    user = relationship('User', back_populates='profile')
+    posts = relationship('tradepost', back_populates='author', lazy=True)
 
 
-class UserProfile:
-    def __init__(self, id, firstname, lastname, bio, location, workplace, education, highlights,
-                 linkedin, facebook, instagram, cover_photo, media_upload, media_type, user_id):
-        self.id = id
-        self.firstname = firstname
-        self.lastname = lastname
-        self.bio = bio
-        self.location = location
-        self.workplace = workplace
-        self.education = education
-        self.highlights = highlights
-        self.linkedin = linkedin
-        self.facebook = facebook
-        self.instagram = instagram
-        self.cover_photo = cover_photo
-        self.media_upload = media_upload
-        self.media_type = media_type
-        self.user_id = user_id
+class tradepost(db.Model, UserMixin):
+    __tablename__ = 'trade_posts'
+    id = Column(Integer, primary_key=True)
+    title = Column(String(100), nullable=False)
+    description = Column(Text, nullable=False)
+    price = Column(Float, nullable=True)
+    image = Column(String(100), nullable=True)
+    category = Column(String(50), nullable=False)
+    user_id = Column(Integer, ForeignKey('user_profile.id'), nullable=False)
+    author = relationship('UserProfile', back_populates='posts')
+    
+    def __repr__(self):
+        return f"<tradepost '{self.title}', posted by User ID {self.user_id}>"
 
-    def save(self):
-        db.collection('user_profiles').document(self.id).set({
-            'firstname': self.firstname,
-            'lastname': self.lastname,
-            'bio': self.bio,
-            'location': self.location,
-            'workplace': self.workplace,
-            'education': self.education,
-            'highlights': self.highlights,
-            'linkedin': self.linkedin,
-            'facebook': self.facebook,
-            'instagram': self.instagram,
-            'cover_photo': self.cover_photo,
-            'media_upload': self.media_upload,
-            'media_type': self.media_type,
-            'user_id': self.user_id
-        })
+    
+class  Admin(db.Model, UserMixin):
+       id = Column(Integer, primary_key=True)
+       name = Column(String(100), unique=False, nullable=False)
+       staff = Column(String(100), unique=True, nullable=False)
+       contact_email = Column(String(150), unique=True, nullable=False)
+       password = Column(String(130))
+       
+  
 
+class Posts(db.Model):
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    image = db.Column(db.String(150), nullable=False)
+    pdf = db.Column(db.String(255), nullable=False)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-class TradePost:
-    def __init__(self, id, title, description, price, image, category, user_id):
-        self.id = id
-        self.title = title
-        self.description = description
-        self.price = price
-        self.image = image
-        self.category = category
-        self.user_id = user_id
+    def __repr__(self):
+        return f'<Post {self.id}>'
 
-    def save(self):
-        db.collection('trade_posts').document(self.id).set({
-            'title': self.title,
-            'description': self.description,
-            'price': self.price,
-            'image': self.image,
-            'category': self.category,
-            'user_id': self.user_id
-        })
+class Save(db.Model):
+         id = db.Column(db.Integer, primary_key=True)
+         device_name = db.Column(db.String(100), nullable=False)  # Device name
+         image = db.Column(db.String(200), nullable=False)  # Image filename
+         price = db.Column(db.Float, nullable=False)  # Price in Rands
+         created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 
 
+         def __repr__(self):
+          return f"<SaveStorage {self.device_name} - R{self.price}>" 
 
-class Admin(UserMixin):
-    def __init__(self, id, name, staff, contact_email, password):
-        self.id = id
-        self.name = name
-        self.staff = staff
-        self.contact_email = contact_email
-        self.password = generate_password_hash(password)
+class CyberPosts(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    image = db.Column(db.String(150), nullable=False)
+    pdf = db.Column(db.String(255), nullable=False)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    def save(self):
-        db.collection('admins').document(self.id).set({
-            'name': self.name,
-            'staff': self.staff,
-            'contact_email': self.contact_email,
-            'password': self.password
-        })
+    def __repr__(self):
+        return f"<CyberPosts {self.id}>"
+    
+class DataPosts(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    image = db.Column(db.String(150), nullable=False)
+    pdf = db.Column(db.String(255), nullable=False)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    def __repr__(self):
+        return f"<DataPosts {self.id}>"  
+
+    
+class NetworkPosts(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    image = db.Column(db.String(150), nullable=False)
+    pdf = db.Column(db.String(255), nullable=False)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    def __repr__(self):
+        return f"<NetworkPosts {self.id}>"  
 
 
-class Posts:
-    def __init__(self, id, image, pdf, date_created=None):
-        self.id = id
-        self.image = image
-        self.pdf = pdf
-        self.date_created = date_created or datetime.utcnow()
+class QuestionPosts(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    image = db.Column(db.String(150), nullable=False)
+    pdf = db.Column(db.String(255), nullable=False)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    def save(self):
-        db.collection('posts').document(self.id).set({
-            'image': self.image,
-            'pdf': self.pdf,
-            'date_created': self.date_created
-        })
+    def __repr__(self):
+        return f"<QuestionPosts {self.id}>"  
 
 
-class Save:
-    def __init__(self, id, device_name, image, price, created_at=None):
-        self.id = id
-        self.device_name = device_name
-        self.image = image
-        self.price = price
-        self.created_at = created_at or datetime.utcnow()
+class MemoPosts(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    image = db.Column(db.String(150), nullable=False)
+    pdf = db.Column(db.String(255), nullable=False)
+    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    def save(self):
-        db.collection('saves').document(self.id).set({
-            'device_name': self.device_name,
-            'image': self.image,
-            'price': self.price,
-            'created_at': self.created_at
-        })
-
-
-class CyberPosts:
-    def __init__(self, id, image, pdf, date_created=None):
-        self.id = id
-        self.image = image
-        self.pdf = pdf
-        self.date_created = date_created or datetime.utcnow()
-
-    def save(self):
-        db.collection('cyber_posts').document(self.id).set({
-            'image': self.image,
-            'pdf': self.pdf,
-            'date_created': self.date_created
-        })
-
-
-class DataPosts:
-    def __init__(self, id, image, pdf, date_created=None):
-        self.id = id
-        self.image = image
-        self.pdf = pdf
-        self.date_created = date_created or datetime.utcnow()
-
-    def save(self):
-        db.collection('data_posts').document(self.id).set({
-            'image': self.image,
-            'pdf': self.pdf,
-            'date_created': self.date_created
-        })
-
-
-class NetworkPosts:
-    def __init__(self, id, image, pdf, date_created=None):
-        self.id = id
-        self.image = image
-        self.pdf = pdf
-        self.date_created = date_created or datetime.utcnow()
-
-    def save(self):
-        db.collection('network_posts').document(self.id).set({
-            'image': self.image,
-            'pdf': self.pdf,
-            'date_created': self.date_created
-        })
-
-
-class QuestionPosts:
-    def __init__(self, id, image, pdf, date_created=None):
-        self.id = id
-        self.image = image
-        self.pdf = pdf
-        self.date_created = date_created or datetime.utcnow()
-
-    def save(self):
-        db.collection('question_posts').document(self.id).set({
-            'image': self.image,
-            'pdf': self.pdf,
-            'date_created': self.date_created
-        })
-
-
-class MemoPosts:
-    def __init__(self, id, image, pdf, date_created=None):
-        self.id = id
-        self.image = image
-        self.pdf = pdf
-        self.date_created = date_created or datetime.utcnow()
-
-    def save(self):
-        db.collection('memo_posts').document(self.id).set({
-            'image': self.image,
-            'pdf': self.pdf,
-            'date_created': self.date_created
-        })
+    def __repr__(self):
+        return f"<MemoPosts {self.id}>"             
+    
+    

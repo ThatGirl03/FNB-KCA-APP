@@ -1,12 +1,11 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, jsonify, render_template, request, flash, redirect, url_for
+from .models import User
 from werkzeug.security import generate_password_hash, check_password_hash
+from website import db 
 from flask_login import login_user, login_required, logout_user, current_user
-from firebase_admin import firestore
 
-from website.models import User
 
-auth = Blueprint('auth', __name__)
-db = firestore.client()
+auth = Blueprint('auth',__name__)
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
@@ -14,22 +13,27 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
 
-        user_ref = db.collection('users').document(email).get()
-        
-        if user_ref.exists:
-            user_data = user_ref.to_dict()
-            if check_password_hash(user_data['password'], password):
+        user = User.query.filter_by(email=email).first()
+        if user: 
+            if check_password_hash(user.password, password):
                 flash('Welcome to Easy Link!', category='success')
-                user = User(id=email, **user_data)  # Adjust User model accordingly
                 login_user(user, remember=True)
                 return redirect(url_for('views.home'))
             else:
                 flash('Incorrect password, try again.', category='error')
         else:
             flash('Email does not exist.', category='error')
+                
 
-    return render_template("login.html", user=current_user)
+    return render_template("login.html", user=current_user )
 
+
+@auth.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('auth.login'))
+   
 
 @auth.route('/sign-up', methods=['GET', 'POST'])
 def sign_up():
@@ -40,25 +44,28 @@ def sign_up():
         password1 = request.form.get('password1')
         password2 = request.form.get('password2')
 
-        user_ref = db.collection('users').document(email).get()
-        if user_ref.exists:
-            flash('Email already in use. Use a different email.', category='error')
+        existing_user = User.query.filter_by(email=email).first()
+
+        if not all([email, lastname, firstname, password1, password2]):
+            flash('All fields are required!', category='error')
             return redirect(url_for('auth.sign_up'))
 
+        if existing_user:
+            flash('Email address already in use. Please use a different email.', category='error')
+            return redirect(url_for('views.sign_up'))
+
+        # Continue with creating the user if email is unique
         if password1 != password2:
             flash('Passwords do not match!', category='error')
-            return redirect(url_for('auth.sign_up'))
-
-        # Add user to Firestore
-        new_user = {
-            "firstname": firstname,
-            "lastname": lastname,
-            "email": email,
-            "password": generate_password_hash(password1)
-        }
-        db.collection('users').document(email).set(new_user)
+            return redirect(url_for('views.sign_up'))
+        
+        new_user = User(email=email, firstname=firstname, lastname=lastname, password=generate_password_hash(password1, method='pbkdf2:sha256'))
+        db.session.add(new_user)
+        db.session.commit()
         flash('Account created!', category='success')
-        login_user(User(id=email, **new_user), remember=True)
-        return redirect(url_for('views.home'))
+        login_user(new_user, remember=True)
+        return redirect(url_for('views.login'))
+
 
     return render_template("sign-up.html", user=current_user)
+
