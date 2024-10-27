@@ -516,6 +516,26 @@ def manage_learners():
 def numbers():
     return render_template('numbers.html')
 
+@views.route('/manage_sectorC')
+def manage_sectorC():
+    return render_template('manage_sectorC.html')
+
+@views.route('/manage_sectorD')
+def manage_sectorD():
+    return render_template('manage_sectorD.html')
+
+@views.route('/manage_sectorE')
+def manage_sectorE():
+    return render_template('manage_sectorE.html')
+
+@views.route('/manage_sectorF')
+def manage_sectorF():
+    return render_template('manage_sectorF.html')
+
+@views.route('/manage_sectorG')
+def manage_sectorG():
+    return render_template('manage_sectorG.html')
+
 #SECTORA
 @views.route('/manage_sectorA', methods=['GET', 'POST'])
 def manage_sectorA():
