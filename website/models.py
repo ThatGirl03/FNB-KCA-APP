@@ -1,136 +1,218 @@
-from datetime import datetime
-from sqlalchemy import TIMESTAMP, Column, Integer, String, Float, Text, ForeignKey
-from sqlalchemy.orm import relationship
+from firebase_admin import firestore
 from flask_login import UserMixin
-from website import db
-from sqlalchemy.sql import func
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 
-class Note(db.Model):
-    id = Column(Integer, primary_key=True)
-    data = Column(String(10000))
-    date = Column(TIMESTAMP(timezone=True), default=func.now())
-    user_id = Column(Integer, ForeignKey('user.id'))
+db = firestore.client()  # Initialize Firestore client
 
-class User(db.Model, UserMixin):
-    id = Column(Integer, primary_key=True)
-    firstname = Column(String(120))
-    lastname = Column(String(120))
-    email = Column(String(150), unique=True)
-    password = Column(String(130))
-    notes = relationship('Note', backref='user', lazy=True)
-    profile = relationship('UserProfile', back_populates='user', uselist=False)
+class Note:
+    def __init__(self, user_id, data):
+        self.data = data
+        self.date = firestore.SERVER_TIMESTAMP  # Firestore will handle the timestamp
+        self.user_id = user_id
 
-class UserProfile(db.Model):
-    id = Column(Integer, primary_key=True)
-    firstname = Column(String(50))
-    lastname = Column(String(50))
-    bio = Column(String(200))
-    location = Column(String(100))
-    workplace = Column(String(100))
-    education = Column(String(100))
-    highlights = Column(String(200))
-    linkedin = Column(String(200))
-    facebook = Column(String(200))
-    instagram = Column(String(200))
-    cover_photo = Column(String(200))
-    media_upload = Column(String(200))
-    media_type = Column(String(50))
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
-    user = relationship('User', back_populates='profile')
-    posts = relationship('tradepost', back_populates='author', lazy=True)
+    @staticmethod
+    def create(user_id, data):
+        note_ref = db.collection('notes').add({
+            'data': data,
+            'date': firestore.SERVER_TIMESTAMP,
+            'user_id': user_id
+        })
+        return note_ref.id  # Return the ID of the created note
 
+class User(UserMixin):
+    def __init__(self, email, first_name, last_name, password=None):
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+        self.password = password
 
-class tradepost(db.Model, UserMixin):
-    __tablename__ = 'trade_posts'
-    id = Column(Integer, primary_key=True)
-    title = Column(String(100), nullable=False)
-    description = Column(Text, nullable=False)
-    price = Column(Float, nullable=True)
-    image = Column(String(100), nullable=True)
-    category = Column(String(50), nullable=False)
-    user_id = Column(Integer, ForeignKey('user_profile.id'), nullable=False)
-    author = relationship('UserProfile', back_populates='posts')
-    
-    def __repr__(self):
-        return f"<tradepost '{self.title}', posted by User ID {self.user_id}>"
+    @staticmethod
+    def create(email, first_name, last_name, password):
+        user_ref = db.collection('users').document(email)
+        user_ref.set({
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email,
+            'password': generate_password_hash(password)  # Hash the password
+        })
 
-    
-class  Admin(db.Model, UserMixin):
-       id = Column(Integer, primary_key=True)
-       name = Column(String(100), unique=False, nullable=False)
-       staff = Column(String(100), unique=True, nullable=False)
-       contact_email = Column(String(150), unique=True, nullable=False)
-       password = Column(String(130))
-       
-  
+    @staticmethod
+    def get(email):
+        user_ref = db.collection('users').document(email).get()
+        if user_ref.exists:
+            user_data = user_ref.to_dict()
+            return User(
+                email=user_data['email'],
+                first_name=user_data['first_name'],
+                last_name=user_data['last_name'],
+                password=user_data['password']
+            )
+        return None
 
-class Posts(db.Model):
-    __table_args__ = {'extend_existing': True}
-    id = db.Column(db.Integer, primary_key=True)
-    image = db.Column(db.String(150), nullable=False)
-    pdf = db.Column(db.String(255), nullable=False)
-    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+class UserProfile:
+    def __init__(self, user_id, firstname, lastname, bio, location, workplace, education, highlights):
+        self.firstname = firstname
+        self.lastname = lastname
+        self.bio = bio
+        self.location = location
+        self.workplace = workplace
+        self.education = education
+        self.highlights = highlights
+        self.user_id = user_id
 
-    def __repr__(self):
-        return f'<Post {self.id}>'
+    @staticmethod
+    def create(user_id, firstname, lastname, bio, location, workplace, education, highlights):
+        profile_ref = db.collection('user_profiles').document(user_id)
+        profile_ref.set({
+            'firstname': firstname,
+            'lastname': lastname,
+            'bio': bio,
+            'location': location,
+            'workplace': workplace,
+            'education': education,
+            'highlights': highlights
+        })
 
-class Save(db.Model):
-         id = db.Column(db.Integer, primary_key=True)
-         device_name = db.Column(db.String(100), nullable=False)  # Device name
-         image = db.Column(db.String(200), nullable=False)  # Image filename
-         price = db.Column(db.Float, nullable=False)  # Price in Rands
-         created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 
+    @staticmethod
+    def get(user_id):
+        profile_ref = db.collection('user_profiles').document(user_id).get()
+        if profile_ref.exists:
+            return profile_ref.to_dict()
+        return None
 
-         def __repr__(self):
-          return f"<SaveStorage {self.device_name} - R{self.price}>" 
+class TradePost:
+    def __init__(self, title, description, price, category, user_id):
+        self.title = title
+        self.description = description
+        self.price = price
+        self.category = category
+        self.user_id = user_id
 
-class CyberPosts(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    image = db.Column(db.String(150), nullable=False)
-    pdf = db.Column(db.String(255), nullable=False)
-    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    @staticmethod
+    def create(title, description, price, category, user_id):
+        post_ref = db.collection('trade_posts').add({
+            'title': title,
+            'description': description,
+            'price': price,
+            'category': category,
+            'user_id': user_id,
+            'date_created': firestore.SERVER_TIMESTAMP
+        })
+        return post_ref.id
 
-    def __repr__(self):
-        return f"<CyberPosts {self.id}>"
-    
-class DataPosts(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    image = db.Column(db.String(150), nullable=False)
-    pdf = db.Column(db.String(255), nullable=False)
-    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+class Admin(UserMixin):
+    def __init__(self, staff, name, contact_email, password=None):
+        self.staff = staff
+        self.name = name
+        self.contact_email = contact_email
+        self.password = password
 
-    def __repr__(self):
-        return f"<DataPosts {self.id}>"  
+    @staticmethod
+    def create(staff, name, contact_email, password):
+        admin_ref = db.collection('admins').document(contact_email)
+        admin_ref.set({
+            'name': name,
+            'staff': staff,
+            'contact_email': contact_email,
+            'password': generate_password_hash(password)  # Hash the password
+        })
 
-    
-class NetworkPosts(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    image = db.Column(db.String(150), nullable=False)
-    pdf = db.Column(db.String(255), nullable=False)
-    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+class Post:
+    def __init__(self, image, pdf):
+        self.image = image
+        self.pdf = pdf
 
-    def __repr__(self):
-        return f"<NetworkPosts {self.id}>"  
+    @staticmethod
+    def create(image, pdf):
+        post_ref = db.collection('posts').add({
+            'image': image,
+            'pdf': pdf,
+            'date_created': firestore.SERVER_TIMESTAMP
+        })
+        return post_ref.id
 
+class Save:
+    def __init__(self, device_name, image, price):
+        self.device_name = device_name
+        self.image = image
+        self.price = price
 
-class QuestionPosts(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    image = db.Column(db.String(150), nullable=False)
-    pdf = db.Column(db.String(255), nullable=False)
-    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+    @staticmethod
+    def create(device_name, image, price):
+        save_ref = db.collection('saves').add({
+            'device_name': device_name,
+            'image': image,
+            'price': price,
+            'created_at': firestore.SERVER_TIMESTAMP
+        })
+        return save_ref.id
 
-    def __repr__(self):
-        return f"<QuestionPosts {self.id}>"  
+class CyberPosts:
+    def __init__(self, image, pdf):
+        self.image = image
+        self.pdf = pdf
 
+    @staticmethod
+    def create(image, pdf):
+        post_ref = db.collection('cyber_posts').add({
+            'image': image,
+            'pdf': pdf,
+            'date_created': firestore.SERVER_TIMESTAMP
+        })
+        return post_ref.id
 
-class MemoPosts(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    image = db.Column(db.String(150), nullable=False)
-    pdf = db.Column(db.String(255), nullable=False)
-    date_created = db.Column(db.DateTime, default=db.func.current_timestamp())
+class DataPosts:
+    def __init__(self, image, pdf):
+        self.image = image
+        self.pdf = pdf
 
-    def __repr__(self):
-        return f"<MemoPosts {self.id}>"             
-    
-    
+    @staticmethod
+    def create(image, pdf):
+        post_ref = db.collection('data_posts').add({
+            'image': image,
+            'pdf': pdf,
+            'date_created': firestore.SERVER_TIMESTAMP
+        })
+        return post_ref.id
+
+class NetworkPosts:
+    def __init__(self, image, pdf):
+        self.image = image
+        self.pdf = pdf
+
+    @staticmethod
+    def create(image, pdf):
+        post_ref = db.collection('network_posts').add({
+            'image': image,
+            'pdf': pdf,
+            'date_created': firestore.SERVER_TIMESTAMP
+        })
+        return post_ref.id
+
+class QuestionPosts:
+    def __init__(self, image, pdf):
+        self.image = image
+        self.pdf = pdf
+
+    @staticmethod
+    def create(image, pdf):
+        post_ref = db.collection('question_posts').add({
+            'image': image,
+            'pdf': pdf,
+            'date_created': firestore.SERVER_TIMESTAMP
+        })
+        return post_ref.id
+
+class MemoPosts:
+    def __init__(self, image, pdf):
+        self.image = image
+        self.pdf = pdf
+
+    @staticmethod
+    def create(image, pdf):
+        post_ref = db.collection('memo_posts').add({
+            'image': image,
+            'pdf': pdf,
+            'date_created': firestore.SERVER_TIMESTAMP
+        })
+        return post_ref.id
