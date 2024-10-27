@@ -852,7 +852,7 @@ def sectorB():
     return render_template("sectorB.html", posts=posts)
 
 # Route to delete a specific sectorB post by ID
-@views.route('/delete_network/<int:post_id>', methods=['POST'])
+@views.route('/delete_sectorB/<int:post_id>', methods=['POST'])
 def delete_sectorB_post(post_id):
     post = NetworkPosts.query.get_or_404(post_id)
 
@@ -892,7 +892,7 @@ def edit_sectorB_post(post_id):
         flash('Sector B post updated successfully!', 'success')
         return redirect(url_for('views.manage_sectorB'))
 
-    return render_template('edit_sector_post.html', post=post)  # Ensure you have this template created
+    return render_template('edit_sectorB_post.html', post=post)  # Ensure you have this template created
 
 
 #QUESTIONS
