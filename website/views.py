@@ -451,12 +451,9 @@ def request_blog():
 def request_video():
     return render_template('request_videos.html')
 
-
-
-
-@views.route('/telkom')
-def telkom():
-    return render_template('telkom.html')
+@views.route('/ict')
+def ict():
+    return render_template('ict.html')
 
 @views.route('/iot')
 def iot():
@@ -589,9 +586,9 @@ def edit_post(post_id):
         return redirect(url_for('views.manage_sectorA'))
     return render_template('edit_post.html', post=post)
 
-@views.route('/raspberry')
-def raspberry():
-    return render_template('raspberry.html')
+@views.route('/kca')
+def kca():
+    return render_template('kca.html')
 
 @views.route('/components')
 def components():
@@ -614,9 +611,7 @@ def arduino_projects():
 def physics():
     return render_template('physics.html')
 
-@views.route('/arduino_models')
-def arduino_models():
-    return render_template('arduino_models.html')
+
 
 @views.route('/science')
 def science():
