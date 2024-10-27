@@ -39,13 +39,25 @@ def set_theme():
     session['theme'] = data['theme']
     return '', 204  # No content response
 
-@views.route('/reduce')
-def reduce():
-    return render_template("reduce.html")
+@views.route('/sectorC')
+def sectorC():
+    return render_template("sectorC.html")
 
-@views.route('/recycle')
-def recycle():
-    return render_template("recycle.html")
+@views.route('/sectorD')
+def sectorD():
+    return render_template("sectorD.html")
+
+@views.route('/sectorE')
+def sectorE():
+    return render_template("sectorE.html")
+
+@views.route('/sectorF')
+def sectorF():
+    return render_template("sectorF.html")
+
+@views.route('/sectorG')
+def sectorG():
+    return render_template("sectorG.html")
 
 @views.route('/r-trade')
 def trade():
