@@ -1,0 +1,8 @@
+/* Styling for the uploaded posts */
+.post-image {
+    max-width: 200px;
+}
+
+.delete-form {
+    display: inline;
+}

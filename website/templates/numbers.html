@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Numbers{% endblock %}
+
+{% block content %}
+<link
+rel="stylesheet"
+href="{{ url_for('static', filename='css/sectorA.css') }}"
+/>
+
+<div class="title-container">
+    <h2 class="page-title">NUMBERS</h2>
+</div>
+
+<div id="software-posts">
+    {% for post in posts %}
+    <div class="software-post">
+        <a href="{{ post.pdf }}" download>
+            <img src="{{ url_for('static', filename='/uploads/' + post.image) }}" alt="Software Image">
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

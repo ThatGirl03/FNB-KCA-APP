@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Cisco{% endblock %}
+
+{% block content %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/sectorA.css') }}"
+/>
+
+
+    <title>Arduino Projects</title>
+
+    </style>
+</head>
+<body>
+    <h1>Arduino Projects</h1>
+
+    <div class="project">
+        <h2>Arduino Uno</h2>
+        <iframe src="" allowfullscreen title="end"></iframe>
+        <p>
+            The Arduino Uno is a versatile board great for beginners. Ideal for simple projects and prototyping.
+        </p>
+        <a href="https://www.arduino.cc/en/Guide/ArduinoUno" target="_blank" rel="noopener">View Details</a>
+    </div>
+
+    <div class="project">
+        <h2>Arduino Nano</h2>
+        <iframe src="" allowfullscreen title="end"></iframe>
+        <p>
+            The Arduino Nano is a compact board perfect for small projects and breadboard setups.
+        </p>
+        <a href="https://www.arduino.cc/en/Guide/ArduinoNano" target="_blank" rel="noopener">View Details</a>
+    </div>
+
+    <div class="project">
+        <h2>Arduino Mega</h2>
+        <iframe src="" allowfullscreen title="end"></iframe>
+        <p>
+            The Arduino Mega features more pins and memory, making it ideal for complex projects.
+        </p>
+        <a href="https://www.arduino.cc/en/Guide/ArduinoMega" target="_blank"  rel="noopener" >View Details</a>
+    </div>
+
+    <div class="project">
+        <h2>Arduino LilyPad</h2>
+        <iframe src="" allowfullscreen title="end"></iframe>
+        <p>
+            The LilyPad Arduino is designed for wearable projects, allowing for integration with textiles.
+        </p>
+        <a href="https://www.arduino.cc/en/Guide/LilyPad" target="_blank" rel="noopener">View Details</a>
+    </div>
+
+    <div class="project">
+        <h2>Arduino Due</h2>
+        <iframe src="" allowfullscreen title="end"></iframe>
+        <p>
+            The Arduino Due is the first Arduino board based on a 32-bit ARM core microcontroller.
+        </p>
+        <a href="https://www.arduino.cc/en/Guide/ArduinoDue" target="_blank" rel="noopener">View Details</a>
+    </div>
+
+    {% endblock %}

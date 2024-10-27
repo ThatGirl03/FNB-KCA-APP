@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Agriculture{% endblock %}
+
+{% block content %}
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/entrepreneurship.css') }}"
+/>
+
+<div class="title-container">
+    <h2 class="page-title">AGRICULTURE</h2>
+</div>
+
+<div id="agric-posts">
+    {% for post in posts %}
+    <div class="agric-post">
+        <a href="{{ post.pdf }}" download>
+            <img src="{{ url_for('static', filename='uploads/' + post.image) }}" alt="Agric Image">
+        </a>
+    </div>
+    {% else %}
+    <p>No data posts available.</p>  <!-- Optional: Display a message if there are no posts -->
+    {% endfor %}
+</div>
+{% endblock %}
