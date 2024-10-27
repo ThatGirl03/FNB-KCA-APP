@@ -508,9 +508,9 @@ def manage_cisco():
 def manage_google():
     return render_template('manage_google.html')
 
-@views.route('/manage_udemy')
-def manage_udemy():
-    return render_template('manage_udemy.html')
+@views.route('/manage_learners')
+def manage_learners():
+    return render_template('manage_learners.html')
 
 @views.route('/numbers')
 def numbers():
