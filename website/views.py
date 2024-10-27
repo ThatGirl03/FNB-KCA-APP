@@ -6,6 +6,9 @@ from flask_login import  current_user, login_required
 from werkzeug.utils import secure_filename
 from .models import DataPosts, MemoPosts, NetworkPosts, QuestionPosts, User, UserProfile, tradepost, Posts, CyberPosts, Save
 from website import db
+from firebase_admin import firestore
+
+db = firestore.client()
 
 
 views = Blueprint('views', __name__)
